@@ -333,46 +333,6 @@ EOF
     )
 }
 
-:git_select_branch() {
-    local regex="$1"
-    local blue="\033[34m"
-    local yellow="\033[33m"
-    local reset="\033[0m"
-
-    echo -e "${blue}Fetching git branches...${reset}"
-
-    local branches=()
-    while IFS= read -r line; do
-        branches+=("$line")
-    done < <(git branch)
-
-    echo -e "${blue}Select branch or press <Enter> to ignore:${reset}"
-    local i=1
-    for branch in "${branches[@]}"; do
-        echo -e "${blue}  $i) $branch${reset}"
-        ((i++))
-    done
-
-    # Prompt for the selection
-    read -rp "Enter your choice: " choice
-
-    if [ -z "$choice" ]; then
-        echo -e "${blue}No branch selected${reset}"
-        return 0
-    fi
-
-    if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
-        echo -e "${blue}No branch selected${reset}"
-        return 0
-    fi
-
-    if [ "$choice" -ge 1 ] && [ "$choice" -le ${#branches[@]} ]; then
-        echo "${branches[$((choice - 1))]}"
-    else
-        echo -e "${blue}No branch selected${reset}"
-    fi
-}
-
 :_gb() {
     echo -e "Fetching git branches..."
 
@@ -394,7 +354,6 @@ EOF
     echo "Switching to branch: $selected_branch"
     git checkout "$selected_branch"
 }
-
 
 :_nb() {
     if [ -z "$1" ]; then

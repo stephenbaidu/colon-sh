@@ -244,11 +244,15 @@ EOF
 }
 
 :_po() {
-    :_project_dir
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        COLON_RETURN_DATA=$(git rev-parse --show-toplevel)
+    else
+        :_project_dir
 
-    if [ $? -ne 0 ]; then
-        echo "Failed to get project directory."
-        return 1
+        if [ $? -ne 0 ]; then
+            echo "Failed to get project directory."
+            return 1
+        fi
     fi
 
     (
@@ -283,11 +287,15 @@ EOF
 }
 
 :_pa() {
-    :_project_dir
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        COLON_RETURN_DATA=$(git rev-parse --show-toplevel)
+    else
+        :_project_dir
 
-    if [ $? -ne 0 ]; then
-        echo "Failed to get project directory."
-        return 1
+        if [ $? -ne 0 ]; then
+            echo "Failed to get project directory."
+            return 1
+        fi
     fi
 
     (

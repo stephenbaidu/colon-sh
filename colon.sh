@@ -17,7 +17,7 @@ alias :ll="git pull"
 alias :gaa="git add ."
 alias :gp="git push"
 alias :gpf="git push --force"
-alias :gh="git log --oneline --graph --decorate"
+alias :gl="git log --oneline --graph --decorate"
 alias :gb=":_gb"
 alias :nb=":_nb"
 alias :gc=":_gc"
@@ -55,7 +55,7 @@ fi
     echo "  :gaa: git add ."
     echo "  :gp: git push"
     echo "  :gpf: git push --force"
-    echo "  :gh: git log --oneline --graph --decorate"
+    echo "  :gl: git log --oneline --graph --decorate"
     echo "  :gb: Select a git branch"
     echo "  :nb: Create a new branch"
     echo "  :gc: git commit"
@@ -193,7 +193,7 @@ EOF
     done
 }
 
-:_simple_select() {
+:_array_select() {
     first_row=$(:_get_cursor_row)
     local prompt="$1"
     shift
@@ -321,7 +321,7 @@ EOF
             action_names+=("$action_name")
         done
 
-        :_simple_select "Select an action:" "${action_names[@]}"
+        :_array_select "Select an action:" "${action_names[@]}"
 
         local selected_index=$?
         if [[ $selected_index -le 0 ]]; then
@@ -349,7 +349,7 @@ EOF
         branches+=("$line")
     done < <(git branch --format="%(refname:short)")
 
-    :_simple_select "Select a branch:" "${branches[@]}"
+    :_array_select "Select a branch:" "${branches[@]}"
     
     local selected_index=$?
     if [[ $selected_index -le 0 ]]; then

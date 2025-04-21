@@ -7,26 +7,6 @@ fi
 
 scriptdir=$(dirname -- "$(realpath -- "$0")")
 
-# Aliases
-alias ::=":_:"
-alias :init=":_init"
-alias :main="git checkout main"
-alias :master="git checkout master"
-alias :gs="git status"
-alias :ll="git pull"
-alias :gaa="git add ."
-alias :gp="git push"
-alias :gpf="git push --force"
-alias :gl="git log --oneline --graph --decorate"
-alias :gb=":_gb"
-alias :nb=":_nb"
-alias :gc=":_gc"
-alias :gca=":_gca"
-alias :prs=":_prs"
-alias :pd=":_pd"
-alias :po=":_po"
-alias :pa=":_pa"
-
 json_file_path=$(eval echo ~/colon.json)
 
 if [[ -f $json_file_path ]]; then
@@ -41,10 +21,43 @@ else
     return 1
 fi
 
+# Aliases
+alias ::=":_:"
+alias :init=":_init"
+alias :json="open $json_file_path"
+alias :main="git checkout main"
+alias :master="git checkout master"
+alias :gs="git status"
+alias :ll="git pull"
+alias :gaa="git add ."
+alias :gp="git push"
+alias :gpf="git push --force"
+alias :gl="git log --oneline --graph --decorate"
+alias :gb=":_gb"
+alias :nb=":_nb"
+alias :gc=":_gc"
+alias :gca=":_gca"
+alias :gcam=":_gcam"
+alias :prs=":_prs"
+alias :pd=":_pd"
+alias :po=":_po"
+alias :pa=":_pa"
+alias :cd=":_cd"
+
+# define aliases from colon.json
+if [[ $(echo "$COLON_JSON_DATA" | jq -e '.aliases') ]]; then
+    echo "$COLON_JSON_DATA" | jq -c '.aliases[]' | while IFS= read -r alias; do
+        alias_name=$(echo "$alias" | jq -r '.name')
+        alias_cmd=$(echo "$alias" | jq -r '.cmd')
+        alias ":$alias_name"="$alias_cmd"
+    done
+fi
+
 :_:() {
     echo "Welcome to colon.sh! Script: $scriptdir, JSON: $json_file_path"
     echo "Usage:"
     echo "  :init: Initialize colon.json file if it doesn't exist"
+    echo "  :json: Open ~/colon.json file"
     echo "  :pd: Change directory to a project"
     echo "  :po: Open project in configured IDE"
     echo "  :pa: Run actions for the project"
@@ -60,7 +73,17 @@ fi
     echo "  :nb: Create a new branch"
     echo "  :gc: git commit"
     echo "  :gca: git commit --amend"
+    echo "  :gcam: git commit --amend with message"
     echo "  :prs: Open pull requests in the browser"
+    echo "\nCustom aliases:"
+
+    if [[ $(echo "$COLON_JSON_DATA" | jq -e '.aliases') ]]; then
+        echo "$COLON_JSON_DATA" | jq -c '.aliases[]' | while IFS= read -r alias; do
+            alias_name=$(echo "$alias" | jq -r '.name')
+            alias_cmd=$(echo "$alias" | jq -r '.cmd')
+            echo "  :$alias_name:" "$alias_cmd"
+        done
+    fi
 }
 
 :_clear_lines() {
@@ -116,7 +139,7 @@ fi
             "actions": [
                 {
                     "name": "PRs",
-                    "cmd": "xdg-open https://github.com/octocat/Hello-World/pulls"
+                    "cmd": "open https://github.com/octocat/Hello-World/pulls"
                 }
             ]
         }
@@ -165,15 +188,13 @@ EOF
             echo "  $counter. $(basename "$expanded_path")"
         fi
     done < <(echo "$COLON_JSON_DATA" | jq -c -r '.dir_projects[]')
-
-    ((counter++))
-    echo "$counter) Cancel"
+    echo "0) *Cancel"
 
     while true; do
         echo -n "Please enter your choice: "
         read -r REPLY
-        if [[ $REPLY -ge 1 && $REPLY -le $counter ]]; then
-            if [[ $REPLY -eq $counter ]]; then
+        if [[ $REPLY -ge 0 && $REPLY -le $counter ]]; then
+            if [[ $REPLY -eq 0 ]]; then
                 last_row=$(:_get_cursor_row)
                 echo "last_row: $last_row"
                 :_clear_lines "($last_row-$first_row+1)"
@@ -206,13 +227,13 @@ EOF
         echo "$i) $option"
         ((i++))
     done
-    echo "$i) Cancel"
+    echo "0) *Cancel"
 
     while true; do
         echo -n "Please enter your choice: "
         read -r REPLY
-        if [[ $REPLY -ge 1 && $REPLY -le $i ]]; then
-            if [[ $REPLY -eq $i ]]; then
+        if [[ $REPLY -ge 0 && $REPLY -le $i ]]; then
+            if [[ $REPLY -eq 0 ]]; then
                 last_row=$(:_get_cursor_row)
                 echo "last_row: $last_row"
                 :_clear_lines "($last_row-$first_row+1)"
@@ -368,7 +389,7 @@ EOF
         echo "Usage: :nb <branch-name>"
     else
         local username=$(whoami)
-        git checkout -b "dev/${username}/$1"
+        git checkout -b "${username}/$1"
     fi
 }
 
@@ -381,8 +402,12 @@ EOF
 }
 
 :_gca() {
+    git commit --amend
+}
+
+:_gcam() {
     if [ -z "$1" ]; then
-        echo "Usage: :gca <commit-message>":
+        echo "Usage: :gcam <commit-message>":
     else
         git commit -m "$*" --amend
     fi
@@ -405,4 +430,27 @@ EOF
     else
         echo "This is not a git repository."
     fi
+}
+
+:_cd() {
+    # Find directories, exclude hidden ones, and sort them
+    local directories=()
+    while IFS= read -r dir; do
+        directories+=("$dir")
+    done < <(find . -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | grep -v '^\.' | sort)
+
+    # Use _array_select to select from the directories
+    :_array_select "Select a directory:" "${directories[@]}"
+    
+    local selected_index=$?
+    if [[ $selected_index -le 0 ]]; then
+        echo "No directory selected."
+        return
+    fi
+
+    local selected_directory="${directories[$((selected_index))]}"
+
+    # Change the directory
+    echo "Changing directory to: $selected_directory"
+    cd "$selected_directory" || return
 }
